@@ -7,7 +7,7 @@
 // Loads cassette-based games to Acorn Electron and BBC micro
 //
 
-var VERSION = "1.0 beta 3";
+var VERSION = "1.1";
 
 var updateStatus = function(status) { document.getElementById("status").innerHTML = status; };
 var handleError = function(message, exception) { document.getElementById("spinner").style.borderLeft = "1.1em solid #FF0000";updateStatus("ERROR: "+message);throw exception;};
@@ -18,7 +18,7 @@ var PlayUEF = function() {
   // Get URL parameters
   var url = new URL(location.href);
   var BAUD  = url.searchParams.get("BAUD") || 1200;
-  var FILE  = url.searchParams.get("FILE") || "tapes/Arcadians_E.zip"; // Loads Electron Arcadians locally by default
+  var FILE  = url.searchParams.get("FILE") || "tapes/Thrust.cdt.zip";
   var TURBO = url.searchParams.get("TURBO") || 0;
   var PHASE = url.searchParams.get("PHASE") || 180;
   var LOCAL = url.searchParams.get("LOCAL") || false;
