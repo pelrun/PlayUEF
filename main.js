@@ -82,7 +82,7 @@ var PlayUEF = function() {
         console.log("Decompressing... ",filenames[i]);
         files[filenames[i]] = unzip.decompress(filenames[i]);
         var extension = filenames[i].split(".").pop().toLowerCase();
-        if (extension=="uef") {var fileToPlay = i;filename = filenames[i]} // Only one Uef per zip handled for now
+        if (extension=="uef" || extension=="tzx" || extension=="cdt") {var fileToPlay = i;filename = filenames[i]} // Only one Uef per zip handled for now
         if (extension=="txt") {TEXTFILE = String.fromCharCode.apply(null, files[filenames[i]]).replace(/\n/g, "<br />");};
         filedata = files[filenames[fileToPlay]];
       }
@@ -93,8 +93,20 @@ var PlayUEF = function() {
 
   function startPlayer(uef){
     var uef = handleZip(uef);
+    var extension = uef.name.split(".").pop().toLowerCase();
     document.getElementById("status").innerHTML = "CONVERTING";
-    var converted = uef2wave(uef.file, BAUD, SAMPLE_RATE, STOPBIT, PHASE, CARRIER);
+    var converted = null;
+    switch (extension) {
+      case 'uef':
+        converted = uef2wave(uef.file, BAUD, SAMPLE_RATE, STOPBIT, PHASE, CARRIER);
+        break;
+      case 'tzx':
+      case 'cdt':
+        converted = tzx2wave(uef.file, SAMPLE_RATE);
+        break;
+
+    }
+    
     player(converted.wav, converted.uef, uef.name, BAUD, SAMPLE_RATE, TEXTFILE);
   }
 

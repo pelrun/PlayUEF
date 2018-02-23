@@ -245,6 +245,7 @@ function uef2wave (uefData, baud, sampleRate, stopPulses, phase, carrierFactor){
     for (var i = 0; i < numChunks; i++) {
       var chunk = uefChunks[i];
       uefChunks[i].timestamp = samplePos; // Record start position in audio WAV, given in samples
+      uefChunks[i].sampleLength = uefChunks[i].cycles * samplesPerCycle;
       functions[chunk.type].apply(this, [chunk]);
 
       // Array to string for console display

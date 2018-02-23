@@ -31,12 +31,11 @@ function player(wavfile, chunks, UEFNAME, BAUD, SAMPLE_RATE, TEXTFILE) {
     });
 
     function binarySearch(array, key) {
-      var samplesPerCycle = SAMPLE_RATE / BAUD;
       var lo = 0, hi = array.length - 1, mid, element;
       while (lo <= hi) {
         mid = ((lo + hi) >> 1);
         element = array[mid];
-        if ((element.timestamp+(element.cycles*samplesPerCycle)) < key) {
+        if ((element.timestamp+element.sampleLength) < key) {
           lo = mid + 1;
         } else if (element.timestamp > key) {
           hi = mid - 1;
@@ -44,7 +43,12 @@ function player(wavfile, chunks, UEFNAME, BAUD, SAMPLE_RATE, TEXTFILE) {
           return mid;
         }
       }
-      return -1;
+      return 0;
+    }
+
+    function currentData(chunk, sample_pos) {
+      let delta = Math.round((sample_pos-chunk.timestamp) / chunk.sampleLength * chunk.datastr.length);
+      return chunk.datastr.slice(delta & 0xfe00,delta);
     }
 
     // set up animation of cassette
@@ -54,7 +58,6 @@ function player(wavfile, chunks, UEFNAME, BAUD, SAMPLE_RATE, TEXTFILE) {
         // Get position of audio player
         var duration = player.duration;
         var currentTime = player.currentTime;
-        var bytesPerSample = (BAUD/SAMPLE_RATE)/10; // # tape bytes transmitted per WAV sample, assuming 10 bit packets
 
         // Render cassette frame
         cassette(duration,currentTime,UEFNAME,BAUD,VERSION);
@@ -71,29 +74,30 @@ function player(wavfile, chunks, UEFNAME, BAUD, SAMPLE_RATE, TEXTFILE) {
           // For UEF data chunks display contents in the console in 'real time'
           switch (chunks[thischunk].type){
             case "dataBlock":
+            case "data":
             document.getElementById("console").style.color = "#00aa00";
-            var delta = Math.floor((samplepos-chunks[thischunk].timestamp)*bytesPerSample); // how much data to display
-            var str = chunks[thischunk].datastr.slice(delta & 0xfe00,delta);
+            var str = currentData(chunks[thischunk], samplepos);
             document.getElementById("console").innerHTML  = str+"|";
             document.getElementById("header").innerHTML = chunks[thischunk].header;
             break;
 
             case "definedDataBlock":
             document.getElementById("console").style.color = "#00aaaa";
-            var delta = Math.floor((samplepos-chunks[thischunk].timestamp)*bytesPerSample); // how much data to display
-            var str = chunks[thischunk].datastr.slice(delta & 0xfe00,delta);
+            var str = currentData(chunks[thischunk], samplepos);
             document.getElementById("console").innerHTML  = str+"|";
             document.getElementById("header").innerHTML = chunks[thischunk].header;
             break;
 
             // Clear console for integerGap
             case "integerGap":
+            case "pause":
             document.getElementById("console").innerHTML ="";
             document.getElementById("header").innerHTML = "";
             break;
 
             // Bright green for carrierTone, it just looks cooler
             case "carrierTone":
+            case "tone":
             document.getElementById("console").style.color = "#00ff22";
             break;
           }
