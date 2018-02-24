@@ -41,31 +41,36 @@ function tzx2wave (tzxData, sampleRate) {
   var tzxDataLength  = tzxData.length;
   var tzxCycles      = 0;
   var currentLevel   = -1;
-  var currentHeader  = "";
+  var amstradHeader  = "";
 
   function decodeTZX(tzxData){
 
-    function decodeAmsdosHeader(data) {
+    function decodeAmstradHeader(data) {
       let type = "";
       if (data[0] == 0x2C && data.length == 263) {
-        switch (data[19]) {
+        switch (data[19]&0xF) {
           case 0:
             type=" BASIC";
             break;
           case 1:
+            type=" Protected BASIC";
+            break;
+          case 2:
             type=" Binary load:"+hex4(wordAt(data, 22))+" exec:"+hex4(wordAt(data, 27));
             break;
-          case 3:
+          case 6:
             type=" ASCII";
             break;
         }
 
-        currentHeader = String.fromCharCode.apply(null,data.slice(1,15))+" block "+data[17]+type;
+        amstradHeader = String.fromCharCode.apply(null,data.slice(1,15))+" block "+data[17]+type;
+        return true;
       }
+      return false;
     }
 
     function toSamples(cycles) {
-      return Math.round(cycles/cyclesPerSample);
+      return Math.floor(0.5 + cycles/cyclesPerSample);
     }
 
     function makePulseArray(length1, length2) {
@@ -134,8 +139,12 @@ function tzx2wave (tzxData, sampleRate) {
 
       chunk.samples = new Int16Array(samples);
 
-      decodeAmsdosHeader(data);
-      chunk.header = currentHeader;
+      // decode amstrad tape header and attach to subsequent block
+      let is_ams_header = decodeAmstradHeader(data);
+      chunk.header = amstradHeader;
+      if (!is_ams_header) {
+        amstradHeader = '';
+      }
 
       //console.log("data length:",chunk.samples.length/sampleRate);
       tzxChunks.push(chunk);
@@ -144,7 +153,7 @@ function tzx2wave (tzxData, sampleRate) {
     function addPause(ms) {
       var chunk = {type:"pause", ms:ms};
       var one_ms = sampleRate / 1000;
-      chunk.samples = Array(Math.floor(ms * one_ms)).fill(0).fill(-1*gain,0,one_ms);
+      chunk.samples = Array(Math.floor(ms * one_ms)).fill(gain).fill(-1*gain,0,one_ms);
       currentLevel = -1;
 
       //console.log("pause length:",chunk.samples.length/sampleRate);
@@ -358,7 +367,7 @@ function tzx2wave (tzxData, sampleRate) {
     var waveBuffer    = new ArrayBuffer(44 + tzxSamples*2); // Header is 44 bytes, sample is 16-bit * sampleLength
     var sampleData    = new Int16Array(waveBuffer, 44, tzxSamples);
     var samplePos     = 0;
-    var re = /[^\x20-\x7f]/g;
+    var re = /[^\x20-\x7e]/g;
     // Parse all chunk objects and write WAV
     for (var i = 0; i < numChunks; i++) {
       let chunk = tzxChunks[i];
@@ -369,7 +378,7 @@ function tzx2wave (tzxData, sampleRate) {
       // Array to string for console display
       if (chunk.data != null){
         var str = String.fromCharCode.apply(null,chunk.data);//
-        chunk.datastr = str.replace(re, ".");
+        chunk.datastr = str.replace(re, ".").replace('&', '&amp;').replace('"', '&quot;').replace("'", '&#39;').replace('<', '&lt;').replace('>', '&gt;');
       }
 
     }
