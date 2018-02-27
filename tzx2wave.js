@@ -378,7 +378,7 @@ function tzx2wave (tzxData, sampleRate) {
       // Array to string for console display
       if (chunk.data != null){
         var str = String.fromCharCode.apply(null,chunk.data);//
-        chunk.datastr = str.replace(re, ".").replace('&', '&amp;').replace('"', '&quot;').replace("'", '&#39;').replace('<', '&lt;').replace('>', '&gt;');
+        chunk.datastr = str.replace(/[<>]/g, '.').replace(re, ".").replace(/&/g,'&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
       }
 
     }
