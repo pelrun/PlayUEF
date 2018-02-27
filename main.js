@@ -14,7 +14,7 @@ var handleError = function(message, exception) { document.getElementById("spinne
 
 var PlayUEF = function() {
   "use strict";
-
+  
   // Get URL parameters
   var url = new URL(location.href);
   var BAUD  = url.searchParams.get("BAUD") || 1200;
@@ -29,11 +29,11 @@ var PlayUEF = function() {
   var TITLE;
   var TEXTFILE = "";
   var UEFNAME = "";
-
+  
   PHASE = PHASE*(Math.PI/180);
   CARRIER=CARRIER/2;
   if (TURBO==1) {STOPBIT=1; CARRIER=0;}
-
+  
   // Downlooad UEF
   function download(FILE, cb){
     updateStatus("DOWNLOADING<BR>"+FILE.split("/").pop());
@@ -49,10 +49,10 @@ var PlayUEF = function() {
     }
     xhttp.send(null);
   }
-
+  
   // Get local UEF
   function loadLocal(cb){
-    updateStatus("<input type='file' id='files'>");
+    updateStatus("<input type='file' id='files' accept='.zip,.uef,.cdt,.tzx'>");
     function fileLoadEvent(event){
       var file = event.target.files[0];
       updateStatus("LOADING<BR>"+file.name);
@@ -65,7 +65,7 @@ var PlayUEF = function() {
     }
     document.addEventListener("change", fileLoadEvent, false);
   }
-
+  
   // Handle zipped files (containing one UEF and TXT notes, as standard on STH)
   function handleZip(input){
     var filedata = input.file;
@@ -73,24 +73,27 @@ var PlayUEF = function() {
     console.log(filename);
     if (filename.split(".").pop().toLowerCase() == "zip"){
       try{
-      var files = {};
-      var unzip = new Zlib.Unzip(filedata);
-      var filenames = unzip.getFilenames();
-      // iterate through files in the zip
-      for (var i = 0; i < filenames.length; i++) {
-        document.getElementById("status").innerHTML = "UNZIPPING";
-        console.log("Decompressing... ",filenames[i]);
-        files[filenames[i]] = unzip.decompress(filenames[i]);
-        var extension = filenames[i].split(".").pop().toLowerCase();
-        if (extension=="uef" || extension=="tzx" || extension=="cdt") {var fileToPlay = i;filename = filenames[i]} // Only one Uef per zip handled for now
-        if (extension=="txt") {TEXTFILE = String.fromCharCode.apply(null, files[filenames[i]]).replace(/\n/g, "<br />");};
-        filedata = files[filenames[fileToPlay]];
-      }
-    }catch(e){handleError("trying to unzip<br>"+filename,e);}
+        var files = {};
+        var unzip = new Zlib.Unzip(filedata);
+        var filenames = unzip.getFilenames();
+        var tapes = [];
+        // iterate through files in the zip
+        for (var i = 0; i < filenames.length; i++) {
+          document.getElementById("status").innerHTML = "UNZIPPING";
+          console.log("Decompressing... ",filenames[i]);
+          files[filenames[i]] = unzip.decompress(filenames[i]);
+          var extension = filenames[i].split(".").pop().toLowerCase();
+          if (extension=="uef" || extension=="tzx" || extension=="cdt") { tapes.push(filenames[i]); } // Only one Uef per zip handled for now
+          if (extension=="txt") {TEXTFILE = String.fromCharCode.apply(null, files[filenames[i]]).replace(/\n/g, "<br />");};
+        }
+        tapes.sort();
+        filename = tapes[0];
+        filedata = files[filename];
+      }catch(e){handleError("trying to unzip<br>"+filename,e);}
     }
     return {file:filedata, name:filename};
   }
-
+  
   function startPlayer(uef){
     var uef = handleZip(uef);
     var extension = uef.name.split(".").pop().toLowerCase();
@@ -98,20 +101,20 @@ var PlayUEF = function() {
     var converted = null;
     switch (extension) {
       case 'uef':
-        converted = uef2wave(uef.file, BAUD, SAMPLE_RATE, STOPBIT, PHASE, CARRIER);
-        break;
+      converted = uef2wave(uef.file, BAUD, SAMPLE_RATE, STOPBIT, PHASE, CARRIER);
+      break;
       case 'tzx':
       case 'cdt':
-        converted = tzx2wave(uef.file, SAMPLE_RATE);
-        break;
-
+      converted = tzx2wave(uef.file, SAMPLE_RATE);
+      break;
+      
     }
     
     player(converted.wav, converted.uef, uef.name, BAUD, SAMPLE_RATE, TEXTFILE);
   }
-
-    // Kick-off player with local or downloaded UEF file
-    (LOCAL=="true") ? loadLocal(startPlayer) : download(FILE,startPlayer);
+  
+  // Kick-off player with local or downloaded UEF file
+  (LOCAL=="true") ? loadLocal(startPlayer) : download(FILE,startPlayer);
 }
 
 window.onload=function(){
