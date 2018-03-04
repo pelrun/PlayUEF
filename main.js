@@ -18,7 +18,7 @@ var PlayUEF = function() {
   // Get URL parameters
   var url = new URL(location.href);
   var BAUD  = url.searchParams.get("BAUD") || 1200;
-  var FILE  = url.searchParams.get("FILE") || "tapes/Thrust.cdt.zip";
+  var FILE  = url.searchParams.get("FILE") || "tapes/WelcomeToAmstrad.zip";
   var TURBO = url.searchParams.get("TURBO") || 0;
   var PHASE = url.searchParams.get("PHASE") || 180;
   var LOCAL = url.searchParams.get("LOCAL") || false;
